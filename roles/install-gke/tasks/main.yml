@@ -1,0 +1,72 @@
+---
+
+- name: Create K8s cluster network
+  gcp_compute_network:
+    name: "{{ k8_network_name }}"
+    auto_create_subnetworks: 'false'
+    routing_config:
+      routing_mode: "REGIONAL"
+    project: "{{ project }}"
+    auth_kind: "{{ auth_kind }}"
+    service_account_file: "{{ service_account_file }}"
+    state: present
+  register: gkenetwork
+
+- name: Create Cluster
+  gcp_container_cluster:
+    auth_kind: "{{ auth_kind }}"
+    description: "Sanka Test Cluster"
+    initial_node_count: "{{ initial_node_count }}"
+    location: "{{ zone }}"
+    locations: "{{ node_location }}"
+    name: "{{ gkename }}"
+    node_config:
+      disk_size_gb: "{{ disk_size_gb }}"
+      machine_type: "{{ machine_type }}"
+    ip_allocation_policy:
+      create_subnetwork: "yes"
+      subnetwork_name: "{{ k8s_cluster_subnet_name }}"
+      use_ip_aliases: "yes"
+    private_cluster_config:
+      enable_private_endpoint: "yes"
+      enable_private_nodes: "yes"
+      master_ipv4_cidr_block: 172.16.0.0/28
+    project: "{{ project }}"
+    scopes:
+      - "https://www.googleapis.com/auth/cloud-platform"
+    service_account_file: "{{ service_account_file }}"
+    state: present
+  register: cluster
+
+- 
+  gcp_container_node_pool:
+    auth_kind: "{{ auth_kind }}"
+    autoscaling:
+      enabled: "yes"
+      max_node_count: "{{ max_node_np }}"
+      min_node_count: "{{ min_node_np }}"
+    cluster: "{{ cluster }}"
+    config:
+      disk_size_gb: "{{ disk_size_gb }}"
+      disk_type: "{{ disk_type }}"
+    initial_node_count: "{{ np_initial_node_count }}"
+    location: "{{ zone }}"
+#    management:
+#      auto_repair: "no"
+#      auto_upgrade: "yes"
+    name: "{{ npname }}"
+    project: "{{ project }}"
+    scopes:
+      - "https://www.googleapis.com/auth/cloud-platform"
+    service_account_file: "{{ service_account_file }}"
+    state: present
+    version: "{{ node_version }}"
+  name: "Create Node Pool for the cluster"
+
+
+
+- name: "Allow autherized network"
+  shell: gcloud container clusters update {{ gkename }} --zone={{ zone }} --enable-master-authorized-networks --master-authorized-networks {{ master_allowed_network }}
+ 
+- name: "Download the cluster config file"
+  shell: gcloud container clusters get-credentials {{ gkename }} --region {{ zone }} --project {{ project }}

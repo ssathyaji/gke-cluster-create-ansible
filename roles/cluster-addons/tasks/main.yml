@@ -1,0 +1,8 @@
+- name: create a address
+  gcp_compute_address:
+    name: traefik-loadbalancer-ip
+    region: "{{ zone }}"
+    project: "{{ project }}"
+    auth_kind: "{{ auth_kind }}"
+    service_account_file: "{{ service_account_file }}"
+    state: present

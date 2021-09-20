@@ -1,0 +1,6 @@
+---
+- name: Delete a GKE Cluster
+  hosts: localhost
+  gather_facts: false
+  roles:
+   - delete-gke
